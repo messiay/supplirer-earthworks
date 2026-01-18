@@ -41,9 +41,35 @@ const App = () => {
     const [activeCategory, setActiveCategory] = useState('All');
     const [searchQuery, setSearchQuery] = useState('');
     const [selectedSupplier, setSelectedSupplier] = useState(null);
-    const [suppliers, setSuppliers] = useState(initialData);
+    const [suppliers, setSuppliers] = useState([]);
+    const [isLoading, setIsLoading] = useState(true);
     const [isSyncing, setIsSyncing] = useState(false);
     const [syncStatus, setSyncStatus] = useState('');
+
+    // Load data from Google Sheets on startup
+    useEffect(() => {
+        const loadFromSheets = async () => {
+            try {
+                const res = await fetch(SHEETDB_API);
+                if (res.ok) {
+                    const data = await res.json();
+                    if (data && data.length > 0) {
+                        setSuppliers(data);
+                    } else {
+                        // Fallback to local JSON if sheet is empty
+                        setSuppliers(initialData);
+                    }
+                } else {
+                    setSuppliers(initialData);
+                }
+            } catch (err) {
+                console.error('Failed to load from Sheets, using local data:', err);
+                setSuppliers(initialData);
+            }
+            setIsLoading(false);
+        };
+        loadFromSheets();
+    }, []);
 
     const [showAddModal, setShowAddModal] = useState(false);
     const [newCompany, setNewCompany] = useState({
@@ -180,6 +206,18 @@ const App = () => {
                         <button type="submit" className="login-btn">Access Dashboard</button>
                     </form>
                     <p className="login-footer">Authorized personnel only</p>
+                </div>
+            </div>
+        );
+    }
+
+    // LOADING SCREEN
+    if (isLoading) {
+        return (
+            <div className="login-container">
+                <div className="login-box">
+                    <RefreshCw size={32} className="spinner" style={{ color: '#F4D58D' }} />
+                    <h2 style={{ marginTop: '1rem' }}>Loading suppliers...</h2>
                 </div>
             </div>
         );
