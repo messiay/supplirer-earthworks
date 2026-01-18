@@ -1,12 +1,20 @@
 :root {
-    --bg-dark: #0f0f11;
-    --bg-card: #18181b;
-    --text-primary: #ededed;
-    --text-secondary: #a1a1aa;
-    --accent: #22c55e;
-    /* Green for sustainability */
-    --accent-glow: rgba(34, 197, 94, 0.2);
-    --border: #27272a;
+    /* Ocean Sunset Palette */
+    --bg-dark: #001427;
+    /* Deep Navy */
+    --bg-card: #0a2540;
+    /* Lighter Navy */
+    --text-primary: #F4D58D;
+    /* Golden Yellow */
+    --text-secondary: #708D81;
+    /* Sage Green */
+    --accent: #BF0603;
+    /* Bold Red */
+    --accent-glow: rgba(191, 6, 3, 0.2);
+    --accent-dark: #8D0801;
+    /* Dark Red */
+    --border: #708D81;
+    /* Sage Green border */
 }
 
 body {

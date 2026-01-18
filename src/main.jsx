@@ -165,7 +165,7 @@ const App = () => {
                 <div className="login-box">
                     <div className="login-header">
                         <Lock size={32} />
-                        <h1>EcoAudit.ai</h1>
+                        <h1>Supplier Table</h1>
                         <p>Supplier Intelligence Dashboard</p>
                     </div>
                     <form onSubmit={handleLogin}>
@@ -190,8 +190,8 @@ const App = () => {
         <div className="app">
             <aside className="sidebar">
                 <div className="brand">
-                    <Globe size={20} style={{ color: '#22c55e' }} />
-                    <span>EcoAudit.ai</span>
+                    <Globe size={20} style={{ color: '#F4D58D' }} />
+                    <span>Supplier Table</span>
                 </div>
                 <div className="filter-group">
                     <div className="filter-title">Categories</div>
