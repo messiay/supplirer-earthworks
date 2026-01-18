@@ -1,20 +1,12 @@
 :root {
-    /* Fresh Coastal Palette */
-    --bg-dark: #0081a7;
-    /* Teal Blue */
-    --bg-card: #00afb9;
-    /* Cyan/Turquoise */
-    --text-primary: #fdfcdc;
-    /* Cream */
-    --text-secondary: #fed9b7;
-    /* Peach */
-    --accent: #f07167;
-    /* Coral */
-    --accent-glow: rgba(240, 113, 103, 0.2);
-    --accent-dark: #d4574e;
-    /* Darker Coral */
-    --border: #fed9b7;
-    /* Peach border */
+    --bg-dark: #0f0f11;
+    --bg-card: #18181b;
+    --text-primary: #ededed;
+    --text-secondary: #a1a1aa;
+    --accent: #22c55e;
+    --accent-glow: rgba(34, 197, 94, 0.2);
+    --accent-dark: #16a34a;
+    --border: #27272a;
 }
 
 body {
