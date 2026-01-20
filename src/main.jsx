@@ -1,6 +1,6 @@
 import React, { useState, useMemo, useEffect } from 'react'
 import ReactDOM from 'react-dom/client'
-import { MapPin, Globe, CheckCircle, X, Plus, Download, RefreshCw, Cloud, Lock } from 'lucide-react'
+import { MapPin, Globe, CheckCircle, X, Plus, Download, RefreshCw, Cloud, Lock, Edit3 } from 'lucide-react'
 import * as XLSX from 'xlsx'
 import initialData from './data/suppliers.json'
 import './index.css'
@@ -45,6 +45,8 @@ const App = () => {
     const [isLoading, setIsLoading] = useState(true);
     const [isSyncing, setIsSyncing] = useState(false);
     const [syncStatus, setSyncStatus] = useState('');
+    const [isEditing, setIsEditing] = useState(false);
+    const [editedSupplier, setEditedSupplier] = useState(null);
 
     // Load data from Google Sheets on startup
     useEffect(() => {
@@ -82,7 +84,8 @@ const App = () => {
         "Evidence/Notes": "Manually added",
         "Location": "",
         "Website": "",
-        "Product Portfolio": ""
+        "Product Portfolio": "",
+        "MOQ": ""
     });
 
     const categories = ['All', 'Bagasse', 'Paper', 'Bioplastics', 'Glass', 'Metal', 'Mycelium', 'Bamboo'];
@@ -116,6 +119,20 @@ const App = () => {
                 method: 'DELETE'
             });
             setSyncStatus('✓ Removed');
+            setTimeout(() => setSyncStatus(''), 3000);
+        } catch (err) {
+            setSyncStatus('⚠ Sync failed');
+        }
+    };
+
+    const syncUpdateToSheet = async (oldName, updatedCompany) => {
+        try {
+            await fetch(`${SHEETDB_API}/Supplier Name/${encodeURIComponent(oldName)}`, {
+                method: 'PATCH',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ data: updatedCompany })
+            });
+            setSyncStatus('✓ Updated');
             setTimeout(() => setSyncStatus(''), 3000);
         } catch (err) {
             setSyncStatus('⚠ Sync failed');
@@ -164,7 +181,8 @@ const App = () => {
             "Evidence/Notes": "Manually added",
             "Location": "",
             "Website": "",
-            "Product Portfolio": ""
+            "Product Portfolio": "",
+            "MOQ": ""
         });
         setShowAddModal(false);
     };
@@ -182,6 +200,31 @@ const App = () => {
         const ws = XLSX.utils.json_to_sheet(suppliers);
         XLSX.utils.book_append_sheet(wb, ws, "Suppliers");
         XLSX.writeFile(wb, "supplier_audit.xlsx");
+    };
+
+    const handleEditSupplier = () => {
+        setEditedSupplier({ ...selectedSupplier });
+        setIsEditing(true);
+    };
+
+    const handleSaveEdit = async () => {
+        if (!editedSupplier["Supplier Name"].trim()) {
+            alert("Supplier name is required");
+            return;
+        }
+        const oldName = selectedSupplier["Supplier Name"];
+        const updatedSuppliers = suppliers.map(s =>
+            s["Supplier Name"] === oldName ? editedSupplier : s
+        );
+        setSuppliers(updatedSuppliers);
+        setSelectedSupplier(editedSupplier);
+        await syncUpdateToSheet(oldName, editedSupplier);
+        setIsEditing(false);
+    };
+
+    const handleCancelEdit = () => {
+        setIsEditing(false);
+        setEditedSupplier(null);
     };
 
     // LOGIN SCREEN
@@ -280,23 +323,77 @@ const App = () => {
             </main>
 
             {selectedSupplier && (
-                <div className="modal-overlay" onClick={() => setSelectedSupplier(null)}>
+                <div className="modal-overlay" onClick={() => { setSelectedSupplier(null); setIsEditing(false); }}>
                     <div className="modal" onClick={e => e.stopPropagation()}>
                         <div className="modal-header">
                             <div className="modal-title-row">
-                                <h2>{selectedSupplier["Supplier Name"]}</h2>
-                                <button onClick={() => setSelectedSupplier(null)}><X /></button>
+                                <h2>{isEditing ? "Edit Supplier" : selectedSupplier["Supplier Name"]}</h2>
+                                <button onClick={() => { setSelectedSupplier(null); setIsEditing(false); }}><X /></button>
                             </div>
-                            <div className="modal-subtitle">{selectedSupplier["Business Type"]} • {selectedSupplier["Company Size"]}</div>
+                            {!isEditing && <div className="modal-subtitle">{selectedSupplier["Business Type"]} • {selectedSupplier["Company Size"]}</div>}
                         </div>
                         <div className="modal-body">
-                            <div className="modal-section"><h3>Materials</h3><p>{selectedSupplier["Materials"] || "N/A"}</p></div>
-                            <div className="modal-section"><h3>Products</h3><p>{selectedSupplier["Product Portfolio"] || "N/A"}</p></div>
-                            <div className="modal-section"><h3>Notes</h3><div className="evidence-box">{selectedSupplier["Evidence/Notes"]}</div></div>
-                            <div className="modal-actions">
-                                {selectedSupplier.Website && <a href={selectedSupplier.Website} target="_blank" rel="noreferrer" className="website-link"><Globe size={16} /> Website</a>}
-                                <button className="delete-btn" onClick={() => handleRemoveCompany(selectedSupplier["Supplier Name"])}>Remove</button>
-                            </div>
+                            {isEditing ? (
+                                <div className="edit-form">
+                                    <label>Company Name *</label>
+                                    <input value={editedSupplier["Supplier Name"]} onChange={e => setEditedSupplier({ ...editedSupplier, "Supplier Name": e.target.value })} />
+
+                                    <label>Company Size</label>
+                                    <select value={editedSupplier["Company Size"]} onChange={e => setEditedSupplier({ ...editedSupplier, "Company Size": e.target.value })}>
+                                        <option>Startup</option><option>Small Enterprise</option><option>Small/Medium Business</option><option>Midsize Enterprise</option>
+                                    </select>
+
+                                    <label>Business Type</label>
+                                    <select value={editedSupplier["Business Type"]} onChange={e => setEditedSupplier({ ...editedSupplier, "Business Type": e.target.value })}>
+                                        <option>Manufacturer</option><option>Manufacturer/Trader</option><option>Distributor</option><option>Brand</option><option>Brand/Tech</option><option>Tech Innovator</option>
+                                    </select>
+
+                                    <label>Materials</label>
+                                    <input value={editedSupplier["Materials"] || ""} onChange={e => setEditedSupplier({ ...editedSupplier, "Materials": e.target.value })} placeholder="Bagasse, Paper, Bioplastics..." />
+
+                                    <label>Bagasse Focus</label>
+                                    <select value={editedSupplier["Bagasse Focus"] || "Unknown"} onChange={e => setEditedSupplier({ ...editedSupplier, "Bagasse Focus": e.target.value })}>
+                                        <option>Primary</option><option>Secondary</option><option>None</option><option>Unknown</option>
+                                    </select>
+
+                                    <label>Verified</label>
+                                    <select value={editedSupplier["Verified"] || "Likely"} onChange={e => setEditedSupplier({ ...editedSupplier, "Verified": e.target.value })}>
+                                        <option>Yes</option><option>Likely</option><option>Unclear (No Website)</option>
+                                    </select>
+
+                                    <label>Location</label>
+                                    <input value={editedSupplier["Location"] || ""} onChange={e => setEditedSupplier({ ...editedSupplier, "Location": e.target.value })} />
+
+                                    <label>Website</label>
+                                    <input value={editedSupplier["Website"] || ""} onChange={e => setEditedSupplier({ ...editedSupplier, "Website": e.target.value })} placeholder="https://..." />
+
+                                    <label>Product Portfolio</label>
+                                    <input value={editedSupplier["Product Portfolio"] || ""} onChange={e => setEditedSupplier({ ...editedSupplier, "Product Portfolio": e.target.value })} />
+
+                                    <label>MOQ (Minimum Order Quantity)</label>
+                                    <input value={editedSupplier["MOQ"] || ""} onChange={e => setEditedSupplier({ ...editedSupplier, "MOQ": e.target.value })} placeholder="e.g., 500 units, 1000 pcs, 50kg..." />
+
+                                    <label>Notes / Evidence</label>
+                                    <input value={editedSupplier["Evidence/Notes"] || ""} onChange={e => setEditedSupplier({ ...editedSupplier, "Evidence/Notes": e.target.value })} />
+
+                                    <div className="preview-actions" style={{ marginTop: '1.5rem' }}>
+                                        <button onClick={handleCancelEdit} className="cancel-btn">Cancel</button>
+                                        <button onClick={handleSaveEdit} className="confirm-btn">Save Changes</button>
+                                    </div>
+                                </div>
+                            ) : (
+                                <>
+                                    <div className="modal-section"><h3>Materials</h3><p>{selectedSupplier["Materials"] || "N/A"}</p></div>
+                                    <div className="modal-section"><h3>Products</h3><p>{selectedSupplier["Product Portfolio"] || "N/A"}</p></div>
+                                    <div className="modal-section"><h3>MOQ</h3><p>{selectedSupplier["MOQ"] || "Not specified"}</p></div>
+                                    <div className="modal-section"><h3>Notes</h3><div className="evidence-box">{selectedSupplier["Evidence/Notes"]}</div></div>
+                                    <div className="modal-actions">
+                                        {selectedSupplier.Website && <a href={selectedSupplier.Website} target="_blank" rel="noreferrer" className="website-link"><Globe size={16} /> Website</a>}
+                                        <button className="edit-btn" onClick={handleEditSupplier}><Edit3 size={16} /> Edit</button>
+                                        <button className="delete-btn" onClick={() => handleRemoveCompany(selectedSupplier["Supplier Name"])}>Remove</button>
+                                    </div>
+                                </>
+                            )}
                         </div>
                     </div>
                 </div>
@@ -328,6 +425,8 @@ const App = () => {
                                 <input value={newCompany["Website"]} onChange={e => setNewCompany({ ...newCompany, "Website": e.target.value })} />
                                 <label>Products</label>
                                 <input value={newCompany["Product Portfolio"]} onChange={e => setNewCompany({ ...newCompany, "Product Portfolio": e.target.value })} />
+                                <label>MOQ (Minimum Order Quantity)</label>
+                                <input value={newCompany["MOQ"]} onChange={e => setNewCompany({ ...newCompany, "MOQ": e.target.value })} placeholder="e.g., 500 units, 1000 pcs..." />
                             </div>
                             <div className="preview-actions">
                                 <button onClick={() => setShowAddModal(false)} className="cancel-btn">Cancel</button>
